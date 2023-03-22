@@ -56,35 +56,40 @@ func (bpq *BuyPriorityQueue) RemoveOrderId(orderId uint32) any {
 
 	removedIdx := 0
 	var removedOrderPtr *order = nil
-	for idx, order := range *bpq {
+	old := *bpq
+	n := len(old)
+
+	if n <= 0 {
+		return nil
+	}
+
+	for idx, order := range old {
 		if order.inp.orderId == orderId {
 			removedIdx = idx
 			removedOrderPtr = order
 		}
 	}
 
-	//Swap this order with the last (n-1)
-	old := *bpq
-	n := len(old)
-	if n > 0 {
-		fmt.Fprintf(os.Stderr, "Length: %v\n", n)
-
-		item := old[n-1]
-		// fmt.Println("HERE?")
-		old[n-1] = removedOrderPtr
-		old[removedIdx] = item
-		// fmt.Println("HERE?")
-		//Get rid of last order (which is the one we want to remove)
-		old[n-1] = nil  // avoid memory leak
-		item.index = -1 // for safety
-
-		//Reslice
-		*bpq = old[0 : n-1]
-		//Fix heap invariant
-		heap.Init(bpq)
-		return item
-	} else {
+	if removedOrderPtr == nil {
 		return nil
 	}
+
+	//Swap this order with the last (n-1)
+	fmt.Fprintf(os.Stderr, "Length: %v\n", n)
+
+	item := old[n-1]
+	// fmt.Println("HERE?")
+	old[n-1] = removedOrderPtr
+	old[removedIdx] = item
+	// fmt.Println("HERE?")
+	//Get rid of last order (which is the one we want to remove)
+	old[n-1] = nil  // avoid memory leak
+	item.index = -1 // for safety
+
+	//Reslice
+	*bpq = old[0 : n-1]
+	//Fix heap invariant
+	heap.Init(bpq)
+	return item
 
 }

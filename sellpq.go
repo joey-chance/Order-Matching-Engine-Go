@@ -48,32 +48,37 @@ func (spq *SellPriorityQueue) RemoveOrderId(orderId uint32) any {
 	//Find orderId
 	removedIdx := 0
 	var removedOrderPtr *order = nil
+	old := *spq
+	n := len(old)
+
+	if n <= 0 {
+		return nil
+	}
+
 	for idx, order := range *spq {
 		if order.inp.orderId == orderId {
 			removedIdx = idx
 			removedOrderPtr = order
 		}
 	}
-	//Swap this order with the last (n-1)
-	old := *spq
-	n := len(old)
-	if n > 0 {
 
-		item := old[n-1]
-		old[n-1] = removedOrderPtr
-		old[removedIdx] = item
-
-		//Get rid of last order (which is the one we want to remove)
-		old[n-1] = nil  // avoid memory leak
-		item.index = -1 // for safety
-
-		//Reslice
-		*spq = old[0 : n-1]
-		//Fix heap invariant
-		heap.Init(spq)
-		return item
-	} else {
+	if removedOrderPtr == nil {
 		return nil
 	}
+	//Swap this order with the last (n-1)
+
+	item := old[n-1]
+	old[n-1] = removedOrderPtr
+	old[removedIdx] = item
+
+	//Get rid of last order (which is the one we want to remove)
+	old[n-1] = nil  // avoid memory leak
+	item.index = -1 // for safety
+
+	//Reslice
+	*spq = old[0 : n-1]
+	//Fix heap invariant
+	heap.Init(spq)
+	return item
 
 }
