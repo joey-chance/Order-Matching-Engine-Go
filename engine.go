@@ -12,52 +12,25 @@ import (
 )
 
 func init() {
-	fmt.Println("Hello, world!")
-	//Buyspq Testing
-	order0 := order{&input{'B', 1, 5, 100, "AAPL"}, 0, 0}
-	order1 := order{&input{'B', 1, 10, 100, "AAPL"}, 1, 0}
-	order2 := order{&input{'B', 1, 3, 100, "AAPL"}, 2, 0}
-	order3 := order{&input{'B', 1, 5, 100, "AAPL"}, 3, 0}
+	//Engine channels
+	activeChan := make(chan *order)
+	unmatchedChan := make(chan *order)
+	matchedChan := make(chan *order)
 
-	//init empty pq
-	pq := make(BuyPriorityQueue, 0)
-	heap.Init(&pq)
-	//push orders in 1 by 1
-	heap.Push(&pq, &order1)
-	heap.Push(&pq, &order2)
-	heap.Push(&pq, &order3)
-	heap.Push(&pq, &order0)
-	//pop orders out, should be in order: order 1, 0, 3, 2
-	for pq.Len() > 0 {
-		poppedorder := heap.Pop(&pq).(*order) //type assertion to order type
-		var poppedinput = poppedorder.inp
-		fmt.Println(poppedorder)
-		fmt.Println(poppedinput)
-		fmt.Println("")
-	}
+	go buyMatchmaker(activeChan, matchedChan, unmatchedChan)
 
-	//Sellspq Testing
-	sorder0 := order{&input{'S', 1, 5, 100, "AAPL"}, 0, 0}
-	sorder1 := order{&input{'S', 1, 10, 100, "AAPL"}, 1, 0}
-	sorder2 := order{&input{'S', 1, 3, 100, "AAPL"}, 2, 0}
-	sorder3 := order{&input{'S', 1, 5, 100, "AAPL"}, 3, 0}
-
-	//init empty pq
+	bpq := make(BuyPriorityQueue, 0)
 	spq := make(SellPriorityQueue, 0)
+	heap.Init(&bpq)
 	heap.Init(&spq)
-	//push orders in 1 by 1
-	heap.Push(&spq, &sorder1)
-	heap.Push(&spq, &sorder2)
-	heap.Push(&spq, &sorder3)
-	heap.Push(&spq, &sorder0)
-	//pop orders out, should be in order: order 2, 0 ,3, 1
-	for spq.Len() > 0 {
-		poppedorder := heap.Pop(&spq).(*order) //type assertion to order type
-		var poppedinput = poppedorder.inp
-		fmt.Println(poppedorder)
-		fmt.Println(poppedinput)
-		fmt.Println("")
-	}
+
+	activeChan <- &order{&input{'B', 1, 5, 100, "AAPL"}, 0, 0}
+
+	//Receives from channels to unblock
+	fmt.Println("Matched Channel received:")
+	printOrder(<-matchedChan)
+	fmt.Println("Unmatched Channel received:")
+	printOrder(<-unmatchedChan)
 }
 
 type Engine struct{}
