@@ -6,27 +6,33 @@ import (
 )
 
 func instrFinder(activeChan chan input) {
-	instrChanMap := make(map[string]chan input)
+	instrChanMap := make(map[string]chan order)
 	orderInstrMap := make(map[uint32]string)
 	//reads from activeChan
+
 	for {
 		select {
-		case input := <-activeChan:
-			channel, prs := instrChanMap[input.instrument]
+		case inputItem := <-activeChan:
+			channel, prs := instrChanMap[inputItem.instrument]
+
+			// Get timestamp here
+			var timestamp int64 = GetCurrentTimestamp()
+			orderItem := order{&inputItem, timestamp, 1, 0}
+
 			//If not cancel orderCheck if instrument exists in map
-			fmt.Fprintf(os.Stderr, "Instrument: %s\n", input.instrument)
+			fmt.Fprintf(os.Stderr, "Instrument: %s\n", inputItem.instrument)
 			fmt.Fprintf(os.Stderr, "instrChanMap Length: %v\n", len(instrChanMap))
-			if input.orderType == inputCancel {
+			if inputItem.orderType == inputCancel {
 				//guaranteed to have corresponding order to cancel somewhere due to discussion post
 				//send cancel order correct chan
-				instr := orderInstrMap[input.orderId]
+				instr := orderInstrMap[inputItem.orderId]
 				channel = instrChanMap[instr]
-				channel <- input
+				channel <- orderItem
 
 			} else {
 				if prs { //Yes: queue up active order to its handler
-					orderInstrMap[input.orderId] = input.instrument //Todo: should this be before or after?
-					channel <- input
+					orderInstrMap[inputItem.orderId] = inputItem.instrument //Todo: should this be before or after?
+					channel <- orderItem
 				} else {
 					fmt.Fprintf(os.Stderr, "Creating gmm\n")
 					//Issue: buy order then cancel order
@@ -34,13 +40,13 @@ func instrFinder(activeChan chan input) {
 					//dont have, so a second gmm for the same instr is made
 					//
 					//update instrChanMap to instantiate new handler
-					newInstrChan := make(chan input, 100)
-					instrChanMap[input.instrument] = newInstrChan
+					newInstrChan := make(chan order, 100)
+					instrChanMap[inputItem.instrument] = newInstrChan
 					go genericMatchmaker(newInstrChan)
 					//queue up active order to its handler
-					channel, prs := instrChanMap[input.instrument]
-					orderInstrMap[input.orderId] = input.instrument //Todo: should this be before or after?
-					channel <- input
+					channel, prs := instrChanMap[inputItem.instrument]
+					orderInstrMap[inputItem.orderId] = inputItem.instrument //Todo: should this be before or after?
+					channel <- orderItem
 					fmt.Fprintf(os.Stderr, "else prs: %v\n", prs)
 				}
 			}
