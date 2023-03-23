@@ -10,9 +10,17 @@ import (
 	"time"
 )
 
-type Engine struct{}
+type Engine struct{
+}
 
-func (e *Engine) accept(ctx context.Context, conn net.Conn, activeChan chan<- *input) {
+var activeChan chan *input
+
+func init() {
+	activeChan = make(chan *input)
+	go instrFinder(activeChan)
+}
+
+func (e *Engine) accept(ctx context.Context, conn net.Conn) {
 	go func() {
 		<-ctx.Done()
 		conn.Close()

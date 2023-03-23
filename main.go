@@ -46,14 +46,12 @@ func main() {
 
 	var e Engine
 	//Engine channels
-	activeChan := make(chan *input)
-	go instrFinder(activeChan)
 	for {
 		conn, err := l.Accept()
 		if err != nil {
 			log.Fatal("accept error: ", err)
 		}
 
-		e.accept(ctx, conn, activeChan)
+		e.accept(ctx, conn)
 	}
 }
