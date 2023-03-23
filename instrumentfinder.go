@@ -1,10 +1,5 @@
 package main
 
-import (
-	"fmt"
-	"os"
-)
-
 func instrFinder(activeChan chan input) {
 	instrChanMap := make(map[string]chan order)
 	orderInstrMap := make(map[uint32]string)
@@ -13,7 +8,6 @@ func instrFinder(activeChan chan input) {
 	for {
 		select {
 		case inputItem := <-activeChan:
-			channel, prs := instrChanMap[inputItem.instrument]
 
 			// Get timestamp here
 			//var timestamp int64 = GetCurrentTimestamp()
@@ -22,21 +16,22 @@ func instrFinder(activeChan chan input) {
 			currTime++
 
 			//If not cancel orderCheck if instrument exists in map
-			fmt.Fprintf(os.Stderr, "Instrument: %s\n", inputItem.instrument)
-			fmt.Fprintf(os.Stderr, "instrChanMap Length: %v\n", len(instrChanMap))
+			// fmt.Fprintf(os.Stderr, "Instrument: %s\n", inputItem.instrument)
+			// fmt.Fprintf(os.Stderr, "instrChanMap Length: %v\n", len(instrChanMap))
 			if inputItem.orderType == inputCancel {
 				//guaranteed to have corresponding order to cancel somewhere due to discussion post
 				//send cancel order correct chan
 				instr := orderInstrMap[inputItem.orderId]
-				channel = instrChanMap[instr]
+				channel := instrChanMap[instr]
 				channel <- orderItem
 
 			} else {
+				channel, prs := instrChanMap[inputItem.instrument]
 				if prs { //Yes: queue up active order to its handler
 					orderInstrMap[inputItem.orderId] = inputItem.instrument //Todo: should this be before or after?
 					channel <- orderItem
 				} else {
-					fmt.Fprintf(os.Stderr, "Creating gmm\n")
+					// fmt.Fprintf(os.Stderr, "Creating gmm\n")
 					//Issue: buy order then cancel order
 					//before gmm made for buyorder, cancel order try to find gmm for the same instr
 					//dont have, so a second gmm for the same instr is made
@@ -46,10 +41,10 @@ func instrFinder(activeChan chan input) {
 					instrChanMap[inputItem.instrument] = newInstrChan
 					go genericMatchmaker(newInstrChan)
 					//queue up active order to its handler
-					channel, prs := instrChanMap[inputItem.instrument]
+					channel, _ := instrChanMap[inputItem.instrument]
 					orderInstrMap[inputItem.orderId] = inputItem.instrument //Todo: should this be before or after?
 					channel <- orderItem
-					fmt.Fprintf(os.Stderr, "else prs: %v\n", prs)
+					// fmt.Fprintf(os.Stderr, "else prs: %v\n", prs)
 				}
 			}
 		}

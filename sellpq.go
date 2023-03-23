@@ -38,9 +38,11 @@ func (spq *SellPriorityQueue) Pop() any {
 }
 
 func (spq *SellPriorityQueue) Peek() any {
-	old := *spq
-	n := len(old)
-	item := old[n-1]
+	// old := *spq
+	// n := len(old)
+	// item := old[n-1]
+	item := heap.Pop(spq)
+	heap.Push(spq, item)
 	return item
 }
 

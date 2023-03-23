@@ -2,8 +2,6 @@ package main
 
 import (
 	"container/heap"
-	"fmt"
-	"os"
 )
 
 type BuyPriorityQueue []*order
@@ -16,7 +14,7 @@ func (bpq BuyPriorityQueue) Less(i, j int) bool {
 		return bpq[i].timestamp < bpq[j].timestamp
 	}
 	// The buy order we want first is the higher price one
-	return bpq[i].inp.price < bpq[j].inp.price
+	return bpq[i].inp.price > bpq[j].inp.price
 }
 
 func (bpq BuyPriorityQueue) Swap(i, j int) {
@@ -26,28 +24,36 @@ func (bpq BuyPriorityQueue) Swap(i, j int) {
 }
 
 func (bpq *BuyPriorityQueue) Push(x any) {
-	fmt.Fprintf(os.Stderr, "Push BO Count: %v\n", x.(*order).inp.count)
+	// fmt.Fprintf(os.Stderr, "Push BO Count: %v\n", x.(*order).inp.count)
 	n := len(*bpq)
 	item := x.(*order)
 	item.index = n
 	*bpq = append(*bpq, item)
-	fmt.Fprintf(os.Stderr, "Len: %v\n", len(*bpq))
+	//heap.Fix(bpq, n)
+	// fmt.Fprintf(os.Stderr, "Len: %v\n", len(*bpq))
+	// for idx, item := range *bpq {
+	// 	// fmt.Fprintf(os.Stderr, "push bpq item order: %v|%v\n", idx, item.inp.price)
+	// }
 }
 
 func (bpq *BuyPriorityQueue) Pop() any {
+
 	old := *bpq
 	n := len(old)
+	// fmt.Fprintf(os.Stderr, "pre pop bpq len: %v\n", n)
 	item := old[n-1]
 	old[n-1] = nil  // avoid memory leak
 	item.index = -1 // for safety
 	*bpq = old[0 : n-1]
+	// fmt.Fprintf(os.Stderr, "pop bpq item: %v|%v\n", item.inp.price, item.inp.count)
 	return item
 }
 
 func (bpq *BuyPriorityQueue) Peek() any {
-	old := *bpq
-	n := len(old)
-	item := old[n-1]
+
+	item := heap.Pop(bpq)
+	heap.Push(bpq, item)
+	// // fmt.Fprintf(os.Stderr, "peek bpq item: %v|%v\n", item.inp.price, item.inp.count)
 	return item
 }
 
@@ -75,7 +81,7 @@ func (bpq *BuyPriorityQueue) RemoveOrderId(orderId uint32) any {
 	}
 
 	//Swap this order with the last (n-1)
-	fmt.Fprintf(os.Stderr, "Length: %v\n", n)
+	// fmt.Fprintf(os.Stderr, "Length: %v\n", n)
 
 	item := old[n-1]
 	// fmt.Println("HERE?")
