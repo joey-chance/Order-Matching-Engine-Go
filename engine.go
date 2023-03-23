@@ -10,13 +10,13 @@ import (
 	"time"
 )
 
-type Engine struct{
+type Engine struct {
 }
 
-var activeChan chan *input
+var activeChan chan input
 
 func init() {
-	activeChan = make(chan *input)
+	activeChan = make(chan input)
 	go instrFinder(activeChan)
 }
 
@@ -28,7 +28,7 @@ func (e *Engine) accept(ctx context.Context, conn net.Conn) {
 	go handleConn(conn, activeChan)
 }
 
-func handleConn(conn net.Conn, activeChan chan<- *input) {
+func handleConn(conn net.Conn, activeChan chan<- input) {
 	defer conn.Close()
 	for {
 		in, err := readInput(conn)
@@ -39,7 +39,7 @@ func handleConn(conn net.Conn, activeChan chan<- *input) {
 			return
 		}
 		fmt.Fprintf(os.Stderr, "Reading input\n")
-		activeChan <- &in
+		activeChan <- in
 		fmt.Fprintf(os.Stderr, "Finished reading input\n")
 	}
 }

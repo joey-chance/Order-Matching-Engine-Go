@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func genericMatchmaker(activeInstrChan <-chan *input) {
+func genericMatchmaker(activeInstrChan <-chan input) {
 	bpq := make(BuyPriorityQueue, 0)
 	spq := make(SellPriorityQueue, 0)
 	heap.Init(&bpq)
@@ -16,12 +16,12 @@ func genericMatchmaker(activeInstrChan <-chan *input) {
 	iter := 0
 	for {
 		select {
-		case inputptr := <-activeInstrChan:
+		case input := <-activeInstrChan:
 			fmt.Fprintf(os.Stderr, "iter: %v\n", iter)
 			iter++
 
 			var timestamp int64 = GetCurrentTimestamp()
-			orderptr := &order{inputptr, timestamp, 1, 0}
+			orderptr := &order{&input, timestamp, 1, 0}
 
 			switch orderptr.inp.orderType {
 			case inputCancel:
