@@ -16,7 +16,7 @@ func (bpq BuyPriorityQueue) Less(i, j int) bool {
 		return bpq[i].timestamp < bpq[j].timestamp
 	}
 	// The buy order we want first is the higher price one
-	return bpq[i].inp.price > bpq[j].inp.price
+	return bpq[i].inp.price < bpq[j].inp.price
 }
 
 func (bpq BuyPriorityQueue) Swap(i, j int) {

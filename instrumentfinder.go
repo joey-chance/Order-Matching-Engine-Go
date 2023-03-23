@@ -9,15 +9,17 @@ func instrFinder(activeChan chan input) {
 	instrChanMap := make(map[string]chan order)
 	orderInstrMap := make(map[uint32]string)
 	//reads from activeChan
-
+	var currTime int64 = 0
 	for {
 		select {
 		case inputItem := <-activeChan:
 			channel, prs := instrChanMap[inputItem.instrument]
 
 			// Get timestamp here
-			var timestamp int64 = GetCurrentTimestamp()
-			orderItem := order{&inputItem, timestamp, 1, 0}
+			//var timestamp int64 = GetCurrentTimestamp()
+
+			orderItem := order{&inputItem, currTime, 1, 0}
+			currTime++
 
 			//If not cancel orderCheck if instrument exists in map
 			fmt.Fprintf(os.Stderr, "Instrument: %s\n", inputItem.instrument)

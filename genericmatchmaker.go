@@ -111,7 +111,11 @@ func genericMatchmaker(activeInstrChan <-chan order) {
 					//while bpq has items, activeOrder count>0,
 					for bpq.Len() > 0 && sellOrderPtr.inp.count > 0 {
 						//peek top
-
+						fmt.Fprintf(os.Stderr, "bpq beset Price: %v\n", bpq.Peek().(*order).inp.price)
+						fmt.Fprintf(os.Stderr, "bpq Length: %v\n", bpq.Len())
+						for idx, item := range bpq {
+							fmt.Fprintf(os.Stderr, "bpq item: %v|%v\n", item.inp.price, idx)
+						}
 						if bpq.Peek().(*order).inp.price >= sellOrderPtr.inp.price {
 							buyOrder := heap.Pop(&bpq).(*order)
 							execPrice := sellOrderPtr.inp.price //Always execute at lower price, which is sell price
