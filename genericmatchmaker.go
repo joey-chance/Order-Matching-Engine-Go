@@ -11,6 +11,9 @@ func genericMatchmaker(activeInstrChan <-chan order) {
 	spq := make(SellPriorityQueue, 0)
 	heap.Init(&bpq)
 	heap.Init(&spq)
+	printChan := make(chan printObj)
+	go printer(printChan)
+
 	iter := 0
 	for {
 		select {
@@ -37,20 +40,23 @@ func genericMatchmaker(activeInstrChan <-chan order) {
 
 					if removedOrderPtr != nil {
 						// fmt.Fprintf(os.Stderr, "bpq removedOrderPtr: %v\n", removedOrderPtr)
-						outputOrderDeleted(*orderptr.inp, true, orderptr.timestamp)
+						// outputOrderDeleted(*orderptr.inp, true, orderptr.timestamp)
+						printChan <- printObj{"D", *orderptr, *orderptr, 0, 0, orderptr.timestamp, true}
 						continue
 					}
 
 					removedOrderPtr = (&spq).RemoveOrderId(orderptr.inp.orderId)
 					if removedOrderPtr != nil {
 						// fmt.Fprintf(os.Stderr, "spq removedOrderPtr: %v\n", removedOrderPtr)
-						outputOrderDeleted(*orderptr.inp, true, orderptr.timestamp)
+						// outputOrderDeleted(*orderptr.inp, true, orderptr.timestamp)
+						printChan <- printObj{"D", *orderptr, *orderptr, 0, 0, orderptr.timestamp, true}
 						continue
 					}
 					// no output false
 					if !orderFound {
 						// fmt.Fprintf(os.Stderr, "rej removedOrderPtr: %v\n", removedOrderPtr)
-						outputOrderDeleted(*orderptr.inp, false, orderptr.timestamp)
+						// outputOrderDeleted(*orderptr.inp, false, orderptr.timestamp)
+						printChan <- printObj{"D", *orderptr, *orderptr, 0, 0, orderptr.timestamp, false}
 					}
 				}
 			case inputBuy:
@@ -67,7 +73,8 @@ func genericMatchmaker(activeInstrChan <-chan order) {
 
 							if buyOrderPtr.inp.count < sellOrder.inp.count { //if sell order partial match, edit sellOrder,increment executionId, decrement activeOrder count, outputOrderExecuted
 								execCount := buyOrderPtr.inp.count
-								outputOrderExecuted(sellOrder.inp.orderId, buyOrderPtr.inp.orderId, sellOrder.executionId, execPrice, execCount, buyOrderPtr.timestamp)
+								// outputOrderExecuted(sellOrder.inp.orderId, buyOrderPtr.inp.orderId, sellOrder.executionId, execPrice, execCount, buyOrderPtr.timestamp)
+								printChan <- printObj{"E", *sellOrder, *buyOrderPtr, execCount, execPrice, buyOrderPtr.timestamp, false}
 								//modify execution id of sell order
 								sellOrder.executionId += 1
 								//modify count of sell order
@@ -78,12 +85,14 @@ func genericMatchmaker(activeInstrChan <-chan order) {
 								buyOrderPtr.inp.count = 0
 							} else if buyOrderPtr.inp.count == sellOrder.inp.count { //if sell order full match, pop, outputOrderExecuted, decrement activeOrder count and try again if still have remaining count
 								execCount := buyOrderPtr.inp.count
-								outputOrderExecuted(sellOrder.inp.orderId, buyOrderPtr.inp.orderId, sellOrder.executionId, execPrice, execCount, buyOrderPtr.timestamp)
+								// outputOrderExecuted(sellOrder.inp.orderId, buyOrderPtr.inp.orderId, sellOrder.executionId, execPrice, execCount, buyOrderPtr.timestamp)
+								printChan <- printObj{"E", *sellOrder, *buyOrderPtr, execCount, execPrice, buyOrderPtr.timestamp, false}
 								//set buyorder to 0
 								buyOrderPtr.inp.count = 0
 							} else if buyOrderPtr.inp.count > sellOrder.inp.count {
 								execCount := sellOrder.inp.count
-								outputOrderExecuted(sellOrder.inp.orderId, buyOrderPtr.inp.orderId, sellOrder.executionId, execPrice, execCount, buyOrderPtr.timestamp)
+								// outputOrderExecuted(sellOrder.inp.orderId, buyOrderPtr.inp.orderId, sellOrder.executionId, execPrice, execCount, buyOrderPtr.timestamp)
+								printChan <- printObj{"E", *sellOrder, *buyOrderPtr, execCount, execPrice, buyOrderPtr.timestamp, false}
 								//set buyorder to 0
 								buyOrderPtr.inp.count -= execCount
 							}
@@ -99,7 +108,8 @@ func genericMatchmaker(activeInstrChan <-chan order) {
 					if buyOrderPtr.inp.count > 0 {
 						heap.Push(&bpq, buyOrderPtr)
 						// fmt.Fprintf(os.Stderr, "bpq new len: %v\n", len(bpq))
-						outputOrderAdded(*buyOrderPtr.inp, buyOrderPtr.timestamp)
+						// outputOrderAdded(*buyOrderPtr.inp, buyOrderPtr.timestamp)
+						printChan <- printObj{"A", *buyOrderPtr, *buyOrderPtr, 0, 0, buyOrderPtr.timestamp, false}
 					}
 				}
 			case inputSell:
@@ -121,7 +131,8 @@ func genericMatchmaker(activeInstrChan <-chan order) {
 							if sellOrderPtr.inp.count < buyOrder.inp.count { //if sell order partial match, edit buyOrder,increment executionId, decrement activeOrder count, outputOrderExecuted
 								// fmt.Fprintf(os.Stderr, "Im Stuck 1\n")
 								execCount := sellOrderPtr.inp.count
-								outputOrderExecuted(buyOrder.inp.orderId, sellOrderPtr.inp.orderId, buyOrder.executionId, execPrice, execCount, sellOrderPtr.timestamp)
+								// outputOrderExecuted(buyOrder.inp.orderId, sellOrderPtr.inp.orderId, buyOrder.executionId, execPrice, execCount, sellOrderPtr.timestamp)
+								printChan <- printObj{"E", *buyOrder, *sellOrderPtr, execCount, execPrice, sellOrderPtr.timestamp, false}
 								//modify execution id of sell order
 								buyOrder.executionId += 1
 								//modify count of sell order
@@ -133,13 +144,15 @@ func genericMatchmaker(activeInstrChan <-chan order) {
 							} else if sellOrderPtr.inp.count == buyOrder.inp.count { //if sell order full match, pop, outputOrderExecuted, decrement activeOrder count and try again if still have remaining count
 								// fmt.Fprintf(os.Stderr, "Im Stuck 2\n")
 								execCount := sellOrderPtr.inp.count
-								outputOrderExecuted(buyOrder.inp.orderId, sellOrderPtr.inp.orderId, buyOrder.executionId, execPrice, execCount, sellOrderPtr.timestamp)
+								// outputOrderExecuted(buyOrder.inp.orderId, sellOrderPtr.inp.orderId, buyOrder.executionId, execPrice, execCount, sellOrderPtr.timestamp)
+								printChan <- printObj{"E", *buyOrder, *sellOrderPtr, execCount, execPrice, sellOrderPtr.timestamp, false}
 								//set buyorder to 0
 								sellOrderPtr.inp.count = 0
 							} else if sellOrderPtr.inp.count > buyOrder.inp.count {
 								// fmt.Fprintf(os.Stderr, "Im Stuck 3\n")
 								execCount := buyOrder.inp.count
-								outputOrderExecuted(buyOrder.inp.orderId, sellOrderPtr.inp.orderId, buyOrder.executionId, execPrice, execCount, sellOrderPtr.timestamp)
+								// outputOrderExecuted(buyOrder.inp.orderId, sellOrderPtr.inp.orderId, buyOrder.executionId, execPrice, execCount, sellOrderPtr.timestamp)
+								printChan <- printObj{"E", *buyOrder, *sellOrderPtr, execCount, execPrice, sellOrderPtr.timestamp, false}
 								//set buyorder to 0
 								sellOrderPtr.inp.count -= execCount
 							}
@@ -153,7 +166,9 @@ func genericMatchmaker(activeInstrChan <-chan order) {
 					//no do nothing
 					if sellOrderPtr.inp.count > 0 {
 						heap.Push(&spq, sellOrderPtr)
-						outputOrderAdded(*sellOrderPtr.inp, sellOrderPtr.timestamp)
+						// outputOrderAdded(*sellOrderPtr.inp, sellOrderPtr.timestamp)
+						// fmt.Fprintf(os.Stderr, "Here\n")
+						printChan <- printObj{"A", *sellOrderPtr, *sellOrderPtr, 0, 0, sellOrderPtr.timestamp, false}
 					}
 				}
 			}

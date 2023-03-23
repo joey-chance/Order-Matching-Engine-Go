@@ -38,9 +38,7 @@ func handleConn(conn net.Conn, activeChan chan<- input) {
 			}
 			return
 		}
-		// fmt.Fprintf(os.Stderr, "Reading input\n")
 		activeChan <- in
-		// fmt.Fprintf(os.Stderr, "Finished reading input\n")
 	}
 }
 
